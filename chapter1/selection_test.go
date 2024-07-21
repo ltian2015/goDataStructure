@@ -135,21 +135,29 @@ func TestSelectMinAndSecondMin(t *testing.T) {
 	s := []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10, 122, 56, -3, 324}
 	fmt.Println(s)
 	min, max := SelectMinAndSecondMinBasic(s)
-	fmt.Printf("最小值是:%d, 次小值是：%d", min, max)
+	fmt.Printf("最小值是:%d, 次小值是：%d \n", min, max)
+	partialS := partialSelectionSort(s, 2)
+	min1 := partialS[0]
+	max1 := partialS[1]
+	if min != min1 || max != max1 {
+		panic("算法错误")
+	}
+	fmt.Println(partialS)
 }
 
 // ------------------------------------------------------------------------------
 // 部分选择排序法，其思想就是排出前k个元素的顺序.这里的具体算法就是
 // 把列表k等分，每一个k等分都与第一个k等分子集进行比较和交换，使第一个k等分始终保持是前k个元素的有序子集
-func partialSelectionSort(s []int, k int) int {
+func partialSelectionSort(s []int, k int) []int {
 	//!!!s1是已排序好的k个元素序列，相当于把s2的元素按照插入排序法插入到前k有序个元素中。
-	insertAndSort := func(k int, s1, s2 []int) []int {
+	insertAndSort := func(s1, s2 []int) {
+		k := len(s1)
 		for i := len(s2) - 1; i >= 0; i-- {
-			if s2[i] < s1[k-1] { //比s1最大的小，则通过交换的方式插入到s1的最大位置处
+			if s2[i] < s1[k-1] { //㘝比s1中最大元素的小，则有资格进入前k个元素，则通过数据交换方式插入到s1的最大位置处
 				temp := s1[k-1]
 				s1[k-1] = s2[i]
 				s2[i] = temp
-				//（试图）将s1的最大位置处新插入的元素前移，已保证顺序
+				//!!!（试图）将s1的最大位置处新插入的元素前移，以保证s1原有顺序
 				for j := k - 1; j >= 1; j-- {
 					if s1[j] < s1[j-1] {
 						swap(s1, j, j-1)
@@ -159,76 +167,68 @@ func partialSelectionSort(s []int, k int) int {
 				}
 			}
 		}
-		return s1
 	}
+
 	s1 := s[0:k]
-	quickSort(s1)
-	l := len(s)
-	for i := k; i < l; i += k {
-		var s2 []int
-		if i+k < l {
-			s2 = s[i : i+k]
-		} else {
-			s2 = s[i:l]
-		}
-		s1 = insertAndSort(k, s1, s2)
-	}
-	return s1[k-1]
+	quickSort(s1) //!!!对前k个元素进行快速排序
+	s2 := s[k:]
+	insertAndSort(s1, s2)
+	return s1
 }
 func TestPartialSelectionSort(t *testing.T) {
 	s := []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
 	fmt.Println(s)
-	first := partialSelectionSort(s, 1)
+	first := partialSelectionSort(s, 1)[0]
 	fmt.Printf("第1小： %d ", first)
 	fmt.Println(s)
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
-	second := partialSelectionSort(s, 2)
+	second := partialSelectionSort(s, 2)[1]
 	fmt.Printf("第2小： %d ", second)
 	fmt.Println(s)
 
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
-	third := partialSelectionSort(s, 3)
+	third := partialSelectionSort(s, 3)[2]
 	fmt.Printf("第3小： %d ", third)
 	fmt.Println(s)
 
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
-	fourth := partialSelectionSort(s, 4)
+	fourth := partialSelectionSort(s, 4)[3]
 	fmt.Printf("第4小： %d ", fourth)
 	fmt.Println(s)
 
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
-	fifth := partialSelectionSort(s, 5)
+	fifth := partialSelectionSort(s, 5)[4]
 	fmt.Printf("第5小： %d ", fifth)
 	fmt.Println(s)
 
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10, 3, 4, 45}
-	sixth := partialSelectionSort(s, 6)
+	sixth := partialSelectionSort(s, 6)[5]
 	fmt.Printf("第6小： %d ", sixth)
 	fmt.Println(s)
 
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
-	seventh := partialSelectionSort(s, 7)
+	seventh := partialSelectionSort(s, 7)[6]
 	fmt.Printf("第7小： %d ", seventh)
 	fmt.Println(s)
 
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
 	fmt.Println(s)
-	eighth := partialSelectionSort(s, 8)
+	eighth := partialSelectionSort(s, 8)[7]
 	fmt.Printf("第8小： %d ", eighth)
 	fmt.Println(s)
 
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
-	nineth := partialSelectionSort(s, 9)
+	nineth := partialSelectionSort(s, 9)[8]
 	fmt.Printf("第9小： %d ", nineth)
 	fmt.Println(s)
 
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10, 3, 4, 45}
-	tenth := partialSelectionSort(s, 10)
+	tenth := partialSelectionSort(s, 10)[9]
 	fmt.Printf("第10小： %d ", tenth)
 	fmt.Println(s)
 
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
-	eleventh := partialSelectionSort(s, 11)
+	eleventh := partialSelectionSort(s, 11)[10]
 	fmt.Printf("第11小： %d ", eleventh)
 	fmt.Println(s)
 
