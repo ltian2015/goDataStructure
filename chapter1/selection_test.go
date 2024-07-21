@@ -3,34 +3,16 @@ package chapter1
 /**
 选择算法是一种在列表或数组中查找第 k 个最小（或最大）数字的算法。该数字称为 k 阶统计量。
 它包括查找列表或数组中的最小、最大和中值元素的各种情况。选择算法通常有几种模式：
-!!! 完全排序后再选择：这种算法对于在同一个列表或数组中反复多次进行不同的K阶统计量的选择是高效的。
-!!! 无序的部分排序（Unordered Partial Sorting）：该算法先把前 k 个元素按顺序排列，其余元素按随机顺序排列，这样就可以查找第 k 个最小（或最大）元素。
+!!! 一：基于排序的选择算法
+!!! 1.完全排序后再选择：这种算法对于在同一个列表或数组中反复多次进行不同的K阶统计量的选择是高效的。
+!!! 2.无序的部分排序（Unordered Partial Sorting）：该算法排除前 k 个元素，其余元素按随机顺序排列，
+!!!   这样就可以查找第 k 个最小（或最大）元素。可以先将列表按k个元素等分，分别排序，然后在分别与第一个k等分
+!!!   进行比较和交换，使第一个k等分成为前k个最小（或最大）有序子序列。
 **/
 import (
 	"fmt"
 	"testing"
 )
-
-// 部分选择排序法，其思想就是排出前k（0-k-1）个元素的大小。这样，就要把
-// 二者就交换(替换第k个元素)
-func partialSelectionSort(s []int, k int) int {
-	quickSort(s[0 : k-1])
-	for i := k; i < len(s); i++ {
-		if s[i] < s[k-1] {
-			swap(s, i, k-1)
-		}
-	}
-	return s[k-1]
-}
-func TestPartialSelectionSort(t *testing.T) {
-	s := []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
-	fmt.Println(s)
-	second := partialSelectionSort(s, 2)
-	third := partialSelectionSort(s, 3)
-	fourth := partialSelectionSort(s, 4)
-	fmt.Printf("第二小：%d, 第三小：%d 第四小：%d /n", second, third, fourth)
-
-}
 
 // /////////////////////////////下面是一些特殊值的选择，最小值、最大值/////////////////////////////
 // SlecxtMin找到给定数组中的最小元素及其位置，需要进行n-1次比较。
@@ -102,6 +84,8 @@ func TestSelectMinAndMax(t *testing.T) {
 // SelectMinAndSecondMinBasic是最基本（易于理解）的选择最小值和次小值的算法，
 // 这种算法的想法和同时找出最大值最小值一样，就是一次拿出两个元素与当前的最小值及次小值进行比较，
 // 相当于在4个元素中找出最小值与次小值，这就需要7次比较，大概的比较次数为： n/2 * 7。
+// !!! 本质上，这是一种部分排序选择法，只排出最小的前2个元素。这种算法就是把整个列表分成k(这里k=2）等分，
+// !!! 每个等分进行排序，然后再与第一个等分进行比较和交换，这样第一个k等分就成了这个列表的前k个有序元素。
 func SelectMinAndSecondMinBasic(s []int) (min, secondMin int) {
 	if s == nil || len(s) <= 2 {
 		panic("无法在空数组,或者元素过少的数组中找到最小与次小的元素")
@@ -122,7 +106,7 @@ func SelectMinAndSecondMinBasic(s []int) (min, secondMin int) {
 	}
 	//糟糕情况下，下面的循环进行了(n-1）/2 * 7次元素比较，即，3.5（n-1）次比较
 	//理论上还存在向 n+lgn-2  次比较的优化算法。
-	for i := startIndex; i < len(s); i += 2 {
+	for i := startIndex; i < len(s); i += 2 /**2等分**/ {
 		if s[i] > s[i+1] { //s[i+1]小   //!!! 为了进入分支，进行了1次比较
 			if s[i+1] < min && s[i] < min { //!!!进行了两次比较
 				min = s[i+1]
@@ -152,4 +136,106 @@ func TestSelectMinAndSecondMin(t *testing.T) {
 	fmt.Println(s)
 	min, max := SelectMinAndSecondMinBasic(s)
 	fmt.Printf("最小值是:%d, 次小值是：%d", min, max)
+}
+
+// ------------------------------------------------------------------------------
+// 部分选择排序法，其思想就是排出前k个元素的顺序.这里的具体算法就是
+// 把列表k等分，每一个k等分都与第一个k等分子集进行比较和交换，使第一个k等分始终保持是前k个元素的有序子集
+func partialSelectionSort(s []int, k int) int {
+	getFirstKelments := func(s1, s2 []int) []int {
+		quickSort(s2)
+		for len(s2) > 0 {
+			l2 := len(s2)
+			for i := len(s1) - 1; i >= 0; i-- {
+				if s1[i] > s2[l2-1] {
+					temp := s1[i]
+					s1[i] = s2[l2-1]
+					s2[l2-1] = temp
+					for j := i; j >= 1; j-- {
+						if s[j] < s[j-1] {
+							swap(s1, j, j-1)
+						} else {
+							break
+						}
+					}
+					break
+				}
+			}
+			s2 = s2[:l2-1]
+		}
+		return s1
+	}
+
+	s1 := s[0:k]
+	quickSort(s1)
+	l := len(s)
+	for i := k; i < l; i += k {
+		var s2 []int
+		if i+k < l {
+			s2 = s[i : i+k]
+		} else {
+			s2 = s[i:l]
+		}
+
+		s1 = getFirstKelments(s1, s2)
+	}
+	return s1[k-1]
+}
+func TestPartialSelectionSort(t *testing.T) {
+	s := []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
+	fmt.Println(s)
+	first := partialSelectionSort(s, 1)
+	fmt.Printf("第1小： %d ", first)
+	fmt.Println(s)
+	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
+	second := partialSelectionSort(s, 2)
+	fmt.Printf("第2小： %d ", second)
+	fmt.Println(s)
+
+	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
+	third := partialSelectionSort(s, 3)
+	fmt.Printf("第3小： %d ", third)
+	fmt.Println(s)
+
+	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
+	fourth := partialSelectionSort(s, 4)
+	fmt.Printf("第4小： %d ", fourth)
+	fmt.Println(s)
+
+	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
+	fifth := partialSelectionSort(s, 5)
+	fmt.Printf("第5小： %d ", fifth)
+	fmt.Println(s)
+
+	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10, 3, 4, 45}
+	sixth := partialSelectionSort(s, 6)
+	fmt.Printf("第6小： %d ", sixth)
+	fmt.Println(s)
+
+	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
+	seventh := partialSelectionSort(s, 7)
+	fmt.Printf("第7小： %d ", seventh)
+	fmt.Println(s)
+
+	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
+	fmt.Println(s)
+	eighth := partialSelectionSort(s, 8)
+	fmt.Printf("第8小： %d ", eighth)
+	fmt.Println(s)
+
+	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
+	nineth := partialSelectionSort(s, 9)
+	fmt.Printf("第9小： %d ", nineth)
+	fmt.Println(s)
+
+	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10, 3, 4, 45}
+	tenth := partialSelectionSort(s, 10)
+	fmt.Printf("第10小： %d ", tenth)
+	fmt.Println(s)
+
+	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
+	eleventh := partialSelectionSort(s, 11)
+	fmt.Printf("第11小： %d ", eleventh)
+	fmt.Println(s)
+
 }
