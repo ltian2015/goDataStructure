@@ -142,30 +142,25 @@ func TestSelectMinAndSecondMin(t *testing.T) {
 // 部分选择排序法，其思想就是排出前k个元素的顺序.这里的具体算法就是
 // 把列表k等分，每一个k等分都与第一个k等分子集进行比较和交换，使第一个k等分始终保持是前k个元素的有序子集
 func partialSelectionSort(s []int, k int) int {
-	getFirstKelments := func(s1, s2 []int) []int {
-		quickSort(s2)
-		for len(s2) > 0 {
-			l2 := len(s2)
-			for i := len(s1) - 1; i >= 0; i-- {
-				if s1[i] > s2[l2-1] {
-					temp := s1[i]
-					s1[i] = s2[l2-1]
-					s2[l2-1] = temp
-					for j := i; j >= 1; j-- {
-						if s[j] < s[j-1] {
-							swap(s1, j, j-1)
-						} else {
-							break
-						}
+	//!!!s1是已排序好的k个元素序列，相当于把s2的元素按照插入排序法插入到前k有序个元素中。
+	insertAndSort := func(k int, s1, s2 []int) []int {
+		for i := len(s2) - 1; i >= 0; i-- {
+			if s2[i] < s1[k-1] { //比s1最大的小，则通过交换的方式插入到s1的最大位置处
+				temp := s1[k-1]
+				s1[k-1] = s2[i]
+				s2[i] = temp
+				//（试图）将s1的最大位置处新插入的元素前移，已保证顺序
+				for j := k - 1; j >= 1; j-- {
+					if s1[j] < s1[j-1] {
+						swap(s1, j, j-1)
+					} else {
+						break
 					}
-					break
 				}
 			}
-			s2 = s2[:l2-1]
 		}
 		return s1
 	}
-
 	s1 := s[0:k]
 	quickSort(s1)
 	l := len(s)
@@ -176,8 +171,7 @@ func partialSelectionSort(s []int, k int) int {
 		} else {
 			s2 = s[i:l]
 		}
-
-		s1 = getFirstKelments(s1, s2)
+		s1 = insertAndSort(k, s1, s2)
 	}
 	return s1[k-1]
 }
