@@ -1,8 +1,7 @@
-package chapter1
+package myheap
 
 import (
 	"container/list"
-	"datastructure/chapter1/myheap"
 	"fmt"
 	"testing"
 	"time"
@@ -91,14 +90,14 @@ func (iheap *IntegerHeap) Pop() any {
 }
 func TestHeap(t *testing.T) {
 	var intHeap *IntegerHeap = &IntegerHeap{1, 4, 5}
-	myheap.Init(intHeap)
-	myheap.Push(intHeap, 2)
-	myheap.Push(intHeap, 10)
-	myheap.Push(intHeap, 3)
+	Init(intHeap)
+	Push(intHeap, 2)
+	Push(intHeap, 10)
+	Push(intHeap, 3)
 	fmt.Printf("最小的数字: %d\n", (*intHeap)[0])
 
 	for intHeap.Len() > 0 {
-		fmt.Printf("%d \n", myheap.Pop(intHeap))
+		fmt.Printf("%d \n", Pop(intHeap))
 	}
 
 }

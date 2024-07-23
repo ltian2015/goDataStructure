@@ -1,4 +1,4 @@
-package chapter1
+package basic
 
 /**
 选择算法是一种在列表或数组中查找第 k 个最小（或最大）数字的算法。该数字称为 k 阶统计量。
@@ -43,7 +43,7 @@ func SelectMinAndMax(s []int) (min, max int) {
 		panic("无法在空数组中找到最小元素和最大元素")
 	}
 	evenCount := len(s)%2 == 0
-	const setp = 2
+
 	var startIndex int = 0
 	if evenCount {
 		startIndex = 2
@@ -93,7 +93,7 @@ func SelectMinAndSecondMinBasic(s []int) (min, secondMin int) {
 		panic("无法在空数组,或者元素过少的数组中找到最小与次小的元素")
 	}
 	evenCount := len(s)%2 == 0
-	const setp = 2
+
 	var startIndex int = 0
 	if evenCount {
 		startIndex = 2
@@ -327,8 +327,9 @@ func quickSelection(s []int, k int) int {
 	} else {
 		//!!! 前baseIndex(<k)个元素已找到，只要在baseIndex（不含）以后的元素中，
 		//!!! 查找第k-baseIndex-1个元素即是第k个元素
+		return quickSelection(s[baseIndex+1:], k-baseIndex-1)
 	}
-	return quickSelection(s[baseIndex+1:], k-baseIndex-1)
+
 }
 
 func TestQuickSelection(t *testing.T) {
@@ -375,6 +376,7 @@ func TestQuickSelection(t *testing.T) {
 		panic("算法错误")
 	}
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10, 3, 4, 45}
+	fmt.Println(s)
 	sixth1 := quickSelection(s, 6)
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10, 3, 4, 45}
 	sixth2 := partialSortSelection2(s, 6)[5]
@@ -400,6 +402,7 @@ func TestQuickSelection(t *testing.T) {
 		panic("算法错误")
 	}
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
+
 	nineth1 := quickSelection(s, 9)
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
 	nineth2 := partialSortSelection2(s, 9)[8]
@@ -409,6 +412,7 @@ func TestQuickSelection(t *testing.T) {
 	}
 
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10, 3, 4, 45}
+	fmt.Println(s)
 	tenth1 := quickSelection(s, 10)
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10, 3, 4, 45}
 	tenth2 := partialSortSelection2(s, 10)[9]
@@ -418,6 +422,7 @@ func TestQuickSelection(t *testing.T) {
 	}
 
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
+	fmt.Println(s)
 	eleventh1 := quickSelection(s, 11)
 	s = []int{2, 34, 5, 6, 0, 8, 6, -1, 7, 9, 10}
 	eleventh2 := partialSortSelection2(s, 11)[10]
