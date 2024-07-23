@@ -90,10 +90,10 @@ func quickSort(s []int) {
 	firstUnComparedElementIndex := 0               //!!! 数组中第一个未与基元比较的元素位置,从0开始。
 	for baseIndex != firstUnComparedElementIndex { //二者相遇
 		BaseData := s[baseIndex]
-		if s[baseIndex-1] > BaseData { //如果基元比前一个元素小，二者就交换位置
+		if s[baseIndex-1] > BaseData { //!!!如果基元比前一个元素小，二者就交换位置
 			swap(s, baseIndex-1, baseIndex)
 			baseIndex = baseIndex - 1
-		} else { //否则，就将这个小于基元的前一个元素与第一个未与基元比较的元素进行交换。
+		} else { //!!!否则，就将这个小于基元的前一个元素交换与前面第一个未与基元比较的元素进行交换,一方面比较出来小于基元的元素放在基元的左侧，另一方面以便下一次循环让基元与前一个未比较过的元素比较
 			swap(s, baseIndex-1, firstUnComparedElementIndex)
 			firstUnComparedElementIndex += 1
 		}
@@ -181,7 +181,6 @@ func insertionSort(s []int) {
 	for i := 1; i < l; i++ {
 		//!!!由于s[0:i]已经排好序，从后向前处理sub，只要当前的元素比前一个元素小，二者就交换顺序
 		sub := s[0 : i+1] //s[0:i+1]不包括第i+1个元素，但包括第i个元素
-
 		for j := len(sub) - 1; j > 0 && sub[j] < sub[j-1]; j-- {
 			temp := sub[j-1]
 			sub[j-1] = sub[j]
@@ -237,23 +236,31 @@ func TestMergeSort(t *testing.T) {
 	s := []int{37, 0, 79, 76, 62, 91, 35, 62, 44, 19, 89, 38, 99, 57, 100, 87, 76, 56, 4, 25, 82, 88}
 	fmt.Println(len(s))
 	fmt.Println(s)
-	//result := mergeSort(s)
-	//fmt.Println("-----------------------------------")
-	//fmt.Println(result)
-	s2 := mergeSort2(s, 4, SelectionSort)
-	fmt.Println(s2)
+	mergeSort(s)
+	fmt.Println(s)
+
+	s = []int{37, 0, 79, 76, 62, 91, 35, 62, 44, 19, 89, 38, 99, 57, 100, 87, 76, 56, 4, 25, 82, 88}
+	mergeSort2(s, 4, SelectionSort)
+	fmt.Println(s)
+
+	s = []int{37, 0, 79, 76, 62, 91, 35, 62, 44, 19, 89, 38, 99, 57, 100, 87, 76, 56, 4, 25, 82, 88}
+	mergeSort2(s, 3, SelectionSort)
+	fmt.Println(s)
+
+	s = []int{37, 0, 79, 76, 62, 91, 35, 62, 44, 19, 89, 38, 99, 57, 100, 87, 76, 56, 4, 25, 82, 88}
+	mergeSort2(s, 5, SelectionSort)
+	fmt.Println(s)
 }
 
 // !!! mergeSort归并排序，归并排序的过程就是将数组分成两半，对每一半进行排序，然
 // !!! 将”已排序”的两半合并在一起，重复这个过程，直到整个数组排序完毕。当然，这种
 // !!! 不断二分的粒度可以根据具体数据规模加以控制，最小粒度的二分就相当于与每两个相邻
 // !!! 的元素作为一个排序小组，排序之后，在对已排序的两个部分逐层向上合并（含排序）。
-func mergeSort(s []int) []int {
+func mergeSort(s []int) {
 	//切分排序。按照最小的粒度，将切片s的每两个相邻的元素进行排序。
-	rstS := divide(s)
+	divide(s)
 	//归并排序，从最小的粒度开始归并相邻的两组已排序的分组。
-	merge(rstS)
-	return rstS
+	merge(s)
 }
 
 // !!! 以递归方式对给定数组s进行归并排序,递归是一种易于理解的分治策略实现方式。
@@ -264,55 +271,43 @@ func mergeSort(s []int) []int {
 // !!! granularity表示二分数组的粒度，数组在不断二分后，一旦规模小于给定的粒度后就不在进行二分，而是
 // !!! 进行真正的排序，sortInLocal则表示对最小粒度的数组进行排序时所使用的就地排序算法。
 // !!! granularity可以控制二分的嵌套层数，sortInLocal参数可以选择合适的就地排序算法。
-func mergeSort2(s []int, granularity int, sortInLocal func([]int)) []int {
+func mergeSort2(s []int, granularity int, sortInLocal func([]int)) {
 	l := len(s)
-	rst := make([]int, l)
 	if l <= granularity { //!!!当子问题达到了”触底“的基本情况（base case）就不再递归，而执行对最小子问题的处理。
-		copy(rst, s)
-		sortInLocal(rst)
-		//问题分解，将数组二分为左右两个数组
-		left := s[:l/2]
-		right := s[l/2:]
-		//对左数组进行归并排序
-		sortedLeft := mergeSort2(left, granularity, sortInLocal)
-		//对右侧数组进行归并排序
-		sortedRight := mergeSort2(right, granularity, sortInLocal)
-		//对已排好序的两侧数组进行归并排序
-		sortedS := MergeSortedLists(sortedLeft, sortedRight)
-		//将合并后的数组拷贝到结果数组中
-		copy(rst, sortedS)
+		sortInLocal(s)
+		return
 	}
-	return rst
+	//问题分解，将数组二分为左右两个数组
+	left := s[:l/2]
+	right := s[l/2:]
+	//对左数组进行归并排序
+	mergeSort2(left, granularity, sortInLocal)
+	//对右侧数组进行归并排序
+	mergeSort2(right, granularity, sortInLocal)
+	//对已排好序的两侧数组进行归并排序
+	sortOrderedListsByInsertion(left, right)
 }
 
 // !!!divide进行切分排序，将给定切片s相邻的两个元素进行分组，然后排序。
 // !!!! 最后输出的切片中，两两分组的组内元素都已排好序（每组只有两个元素，而且是相邻的两个元素）
-func divide(s []int) []int {
+func divide(s []int) {
 	slen := len(s)
-	rstS := make([]int, slen)
 	//相邻两个元素比较，排序后存储如结果数组。
 	for i := 0; i < slen; i += 2 {
 		if i+1 < slen {
 			if s[i] > s[i+1] {
-				rstS[i] = s[i+1]
-				rstS[i+1] = s[i]
-			} else {
-				rstS[i] = s[i]
-				rstS[i+1] = s[i+1]
+				swap(s, i, i+1)
 			}
-		} else {
-			rstS[i] = s[i]
 		}
 	}
-	return rstS
 }
 
 // !!! merge对已完成切分排序的素组进行就地的归并排序。
 // !!! 思路就是以先以2个元素为分组单位，对每相邻的两个分组的进行合并排序，
 // !!! 然后再以2*2个元素为分组单位，对每相邻的两个分组进行合并排序，
 // !!! 如此，不断以2的n次方个元素来扩大分组的元素规模，直到将给定的切片分组为两个分组进行归并排序为止。
-func merge(divS []int) {
-	slen := len(divS)
+func merge(s []int) {
+	slen := len(s)
 	//!!! 在循环中，将分组的初始规模设置为2，对该规模的分组完成归并后，就将分组的规模翻倍，继续进行归并
 	for groupSize := 2; groupSize < slen; groupSize *= 2 {
 		var left, right []int
@@ -321,19 +316,17 @@ func merge(divS []int) {
 		for i := 0; i < slen; i += groupSize * 2 {
 			//当遍历到当前位置，按照分组规模，划分左分组会超出切片边界时，右分组为空。
 			if i+groupSize > slen {
-				left = divS[i:]
-				right = divS[0:0]
+				left = s[i:]
+				right = s[0:0]
 			} else { //当做分组不超过切片边界时，右分组可能超界，也可能不超界。
-				left = divS[i : i+groupSize]
+				left = s[i : i+groupSize]
 				if i+groupSize*2 < slen { //右侧分组不超界超界情况
-					right = divS[i+groupSize : i+groupSize*2]
+					right = s[i+groupSize : i+groupSize*2]
 				} else {
-					right = divS[i+groupSize:] //右侧分组超界情况
+					right = s[i+groupSize:] //右侧分组超界情况
 				}
 			}
-			mergedGroup := MergeSortedLists(left, right)
-			//!!!将归并后的分组拷贝至原切片，使得原切片可以继续进行下一个分组规模的归并排序。
-			copy(divS[i:i+len(mergedGroup)], mergedGroup)
+			sortOrderedListsByInsertion(left, right)
 		}
 	}
 }
@@ -342,6 +335,7 @@ func merge(divS []int) {
 // !!! 思路就是将左右两个分组中的第一个元素，也就是各自分组最小的元素拿出来进行比较，
 // !!! 将最小的元素“移入（从源分组中删除）”结果切片中，这样，直到两个分组的元素都被取空，
 // !!! 就完成了两个数组的归并排序。
+// !!! 这个过程产生了新的列表，不是能用于就地排序，被MergeSortedListsByInsertion所取代
 func MergeSortedLists(left, right []int) []int {
 	result := make([]int, 0, len(left)+len(right))
 	//!!! 循环要达成的目标状态是两个分组中的元素都被取空，需要
@@ -379,6 +373,32 @@ func MergeSortedLists(left, right []int) []int {
 		}
 	}
 	return result
+}
+
+// !!!使用插入算法来将left和right两个有序数组的重新排序，使得左右两个数组整体上符合从左到右的排序顺序
+// !!! 这是一种就地处理方法，最后的结果是，left列表存储较小的元素，而right列表存储较大的元素，二者都是有序的
+func sortOrderedListsByInsertion(left, right []int) {
+	insertionResort := func(s []int) {
+		l := len(s)
+		for i := l - 1; i >= 1; i-- {
+			if s[i] < s[i-1] {
+				swap(s, i, i-1)
+			}
+		}
+	}
+	ll := len(left)
+	lr := len(right)
+	//不断拿出两个数组中最大的元素进行比较，将较小的交换到左侧，较大的交换到右侧，
+	//这样，右侧列表靠近尾部的元素总是两个列表中最大的。（但是这两个元素中，小的一个元素不一定是次小的）
+	//然后以插入排序（在有序列表中找到合适位置插入元素）的思想对左侧的有序列表的元素中进行重新排序。
+	for i := lr - 1; i >= 0; i-- {
+		maxL := left[ll-1]
+		if right[i] < maxL { //找到两个列表中最大元素的放在右列表的末尾
+			left[ll-1] = right[i]
+			right[i] = maxL
+			insertionResort(left)
+		}
+	}
 }
 
 func TestCountingSort(t *testing.T) {
