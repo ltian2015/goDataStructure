@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 )
 
 // !!! IsNil泛型函数判断给定的任何类型（any类型）值是否为nil。
@@ -341,4 +342,37 @@ func TestNodeStack(t *testing.T) {
 	var nullStack Stack[string] = &NodeStack[string]{}
 	fmt.Printf("nullStack 的类型是：%T\n", nullStack)
 	anyStack.Push(nullStack)
+}
+
+const size = 10_000_000
+
+func TestStackPerformance(t *testing.T) {
+	nodeStack := NodeStack[int]{}
+	sliceStack := SliceStackAny[int]{}
+	// Benchmark nodeStack
+	start := time.Now()
+	for i := 0; i < size; i++ {
+		nodeStack.Push(i)
+	}
+	elapsed := time.Since(start)
+	fmt.Println("\nTime for 10 million Push() operations on nodeStack: ", elapsed)
+	start = time.Now()
+	for i := 0; i < size; i++ {
+		nodeStack.Pop()
+	}
+	elapsed = time.Since(start)
+	fmt.Println("\nTime for 10 million Pop() operations on nodeStack: ", elapsed)
+	// Benchmark sliceStack
+	start = time.Now()
+	for i := 0; i < size; i++ {
+		sliceStack.Push(i)
+	}
+	elapsed = time.Since(start)
+	fmt.Println("\nTime for 10 million Push() operations on sliceStack: ", elapsed)
+	start = time.Now()
+	for i := 0; i < size; i++ {
+		sliceStack.Pop()
+	}
+	elapsed = time.Since(start)
+	fmt.Println("\nTime for 10 million Pop() operations on sliceStack: ", elapsed)
 }
