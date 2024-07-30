@@ -52,19 +52,17 @@ type Precedence int
 const (
 	_      int = 0
 	LOWEST     = iota
-	ADD
-	MUL
-	PAREN
+	ADD_LEVEL
+	MUL_LEVEL
+	PAREN_LEVEL
 )
 
-var Operators = []string{"+", "-", "*", "/", "(", ")"}
+var Operators = []string{"+", "-", "*", "/"}
 var OprtPrecd = map[string]int{
-	"+": ADD,
-	"-": ADD,
-	"*": MUL,
-	"/": MUL,
-	"(": PAREN,
-	")": PAREN,
+	"+": ADD_LEVEL,
+	"-": ADD_LEVEL,
+	"*": MUL_LEVEL,
+	"/": MUL_LEVEL,
 }
 
 func isSpace(char byte) bool {
@@ -95,6 +93,74 @@ func charToSymble(ch byte) Symbol {
 		panic("表达式中出现了无法解析的字符")
 	}
 
+}
+
+type ExprParser struct {
+	originExpr     string
+	postFixSymbols []Symbol
+	stack          Stack[Symbol]
+}
+
+func NewExprParser(expr string) ExprParser {
+	return ExprParser{
+		originExpr:     expr,
+		postFixSymbols: []Symbol{},
+		stack:          &SliceStackAny[Symbol]{},
+	}
+}
+func (ep ExprParser) GetPostFixExpr() string {
+	postFixExp := LeftFold(Map(ep.postFixSymbols,
+		func(smbl Symbol) string { return smbl.literal }),
+		func(s1, s2 string) string { return s1 + s2 })
+	return postFixExp
+}
+func (ep *ExprParser) Execute() {
+	var lastSymbol Symbol
+	for i := 0; i < len(ep.originExpr); i++ {
+		ch := ep.originExpr[i]
+		if isSpace(ch) {
+			continue
+		}
+		curSmb := charToSymble(ch)
+		//TODO 判断最后一个操作符的合法
+		switch curSmb.sblType {
+		case IDENT:
+			ep.postFixSymbols = append(ep.postFixSymbols, curSmb)
+		case LPAREN:
+			ep.stack.Push(curSmb) //
+		case RPAREN:
+			if lastSymbol.sblType == LPAREN || lastSymbol.sblType == OPERATOR {
+				panic("右括号前不能直接出现左括号或者操作符")
+			}
+			for !ep.stack.IsEmpty() && ep.stack.Top().sblType != LPAREN {
+				priorOpt := ep.stack.Pop() //弹出前面的操作符，因为它的右操作数已经找到
+				ep.postFixSymbols = append(ep.postFixSymbols, priorOpt)
+			}
+			if ep.stack.IsEmpty() {
+				panic("错误，左右括号不匹配")
+			}
+			ep.stack.Pop() //弹出对应的左括号
+		case OPERATOR:
+			if lastSymbol.sblType == INVALID || lastSymbol.sblType == LPAREN || lastSymbol.sblType == OPERATOR {
+				panic("错误，操作符出现在错误位置")
+			}
+			if ep.stack.IsEmpty() || ep.stack.Top().sblType == LPAREN || //考虑到左括号这种特殊的操作符
+				!isPrior(ep.stack.Top(), curSmb) {
+				ep.stack.Push(curSmb)
+			} else {
+				for !ep.stack.IsEmpty() && isPrior(ep.stack.Top(), curSmb) {
+					priorOpt := ep.stack.Pop()
+					ep.postFixSymbols = append(ep.postFixSymbols, priorOpt)
+				}
+				ep.stack.Push(curSmb)
+			}
+		}
+		lastSymbol = curSmb
+	}
+	if !ep.stack.IsEmpty() {
+		symbOpt := ep.stack.Pop()
+		ep.postFixSymbols = append(ep.postFixSymbols, symbOpt)
+	}
 }
 
 func InfixExpToPostfixExp(infixExp string) (postFixExp string) {
@@ -205,8 +271,12 @@ func InfixExpToPostfixExp(infixExp string) (postFixExp string) {
 }
 
 func TestInfixExpToPostfixExp(t *testing.T) {
-	exp := "a+(b-c)*d/(e+g)*h-d"
+	exp := "a + ( b-c)*d/(e+g)*h-d"
 	fmt.Println(exp)
 	result := InfixExpToPostfixExp(exp)
+	fmt.Println(result)
+	ep := NewExprParser(exp)
+	ep.Execute()
+	result = ep.GetPostFixExpr()
 	fmt.Println(result)
 }
