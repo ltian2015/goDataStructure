@@ -30,7 +30,7 @@ func powerSeriers(a int) (int, int) {
 	return square, cube
 }
 
-type Node struct {
+type Person struct {
 	id   int
 	name string
 }
@@ -38,10 +38,10 @@ type Node struct {
 func TestUseTuple(t *testing.T) {
 	square, cube := powerSeriers(5)
 	fmt.Println("square:", square, " cube:", cube)
-	var node1 = Node{id: 1, name: "lant"}
-	var node2 = node1 //Golang 中，赋值就是对值的拷贝。
-	node2.id = 2
-	fmt.Println("node1 id :", node1.id, " node2 id :", node2.id)
+	var p1 = Person{id: 1, name: "lant"}
+	var p2 = p1 //Golang 中，赋值就是对值的拷贝。
+	p2.id = 2
+	fmt.Println("node1 id :", p1.id, " node2 id :", p2.id)
 	var t1 time.Time = time.Now()
 
 	println(t1.Format("YYYY-MM-dd:hh:mm:ss"))

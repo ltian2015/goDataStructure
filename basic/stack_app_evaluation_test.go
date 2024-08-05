@@ -1,36 +1,11 @@
 package basic
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"testing"
 )
-
-func Map[A, B any, S ~[]A](s S, mapFunc func(a A) B) []B {
-	l := len(s)
-	if l == 0 {
-		return []B{}
-	}
-	result := make([]B, l, l)
-	for i, a := range s {
-		b := mapFunc(a)
-		result[i] = b
-	}
-	return result
-}
-
-// 这是一个对slice容器以左折叠方式进行缩减（reduce）的求值函数
-// s是被折叠的slice，foldFunc是对两个值进行折叠得到一个值的折叠操作函数
-func LeftFold[A any, S ~[]A](s S, foldFunc func(a1, a2 A) A) A {
-	var result A //!!! 此时，result值是类型A的零值
-	if len(s) == 0 {
-		return result
-	}
-	for _, a := range s {
-		result = foldFunc(result, a)
-	}
-	return result
-}
 
 type SymbolType int
 
@@ -57,7 +32,10 @@ const (
 	PAREN_LEVEL
 )
 
+// Operators定义了操作符列表
 var Operators = []string{"+", "-", "*", "/"}
+
+// OprtPrecd 定义了操作符优先级字典
 var OprtPrecd = map[string]int{
 	"+": ADD_LEVEL,
 	"-": ADD_LEVEL,
@@ -108,43 +86,50 @@ func NewExprParser(expr string) ExprParser {
 		stack:          &SliceStackAny[Symbol]{},
 	}
 }
+
 func (ep ExprParser) GetPostFixExpr() string {
 	postFixExp := LeftFold(Map(ep.postFixSymbols,
 		func(smbl Symbol) string { return smbl.literal }),
 		func(s1, s2 string) string { return s1 + s2 })
 	return postFixExp
 }
+
 func (ep *ExprParser) Execute() {
-	var lastSymbol Symbol
+	var lastSymbol Symbol //上一个处理过的符号，用来辅助检查表达式的符号之间的连接是否合理。
 	for i := 0; i < len(ep.originExpr); i++ {
 		ch := ep.originExpr[i]
 		if isSpace(ch) {
 			continue
 		}
 		curSmb := charToSymble(ch)
-		//TODO 判断最后一个操作符的合法
 		switch curSmb.sblType {
-		case IDENT:
+		case IDENT: //!!!遇到标识符就压栈，有优先级的操作符才需要处理彼此的先后顺序。
+			if lastSymbol.sblType == IDENT {
+				panic("表达式错误,连续出现了两个标识符")
+			}
 			ep.postFixSymbols = append(ep.postFixSymbols, curSmb)
-		case LPAREN:
+		case LPAREN: //!!!遇到左括号就压栈处理，作为“括号帧的帧底”，当遇到右括号时，经将该括号帧全部弹出
+			if lastSymbol.sblType == IDENT {
+				panic("表达式错误,左括号出现了标识符")
+			}
 			ep.stack.Push(curSmb) //
-		case RPAREN:
+		case RPAREN: //!!! 遇到右括号就不停弹出栈内操作符，直到弹出括号帧的帧底——左括号为止。
 			if lastSymbol.sblType == LPAREN || lastSymbol.sblType == OPERATOR {
-				panic("右括号前不能直接出现左括号或者操作符")
+				panic("表达式错误,右括号前直接出现了左括号或者操作符")
 			}
 			for !ep.stack.IsEmpty() && ep.stack.Top().sblType != LPAREN {
 				priorOpt := ep.stack.Pop() //弹出前面的操作符，因为它的右操作数已经找到
 				ep.postFixSymbols = append(ep.postFixSymbols, priorOpt)
 			}
 			if ep.stack.IsEmpty() {
-				panic("错误，左右括号不匹配")
+				panic("表达式错误，左右括号不匹配")
 			}
-			ep.stack.Pop() //弹出对应的左括号
-		case OPERATOR:
+			ep.stack.Pop() //弹出对应的左括号——括号帧的帧底
+		case OPERATOR: //!!!如果单前操作符的优先级小于或等于栈里的操作符，就应先把栈里的操作符弹出到后缀表达式列表中，以便优先计算,否则就把自己压栈，待由后续操作符的优先级来决定。
 			if lastSymbol.sblType == INVALID || lastSymbol.sblType == LPAREN || lastSymbol.sblType == OPERATOR {
-				panic("错误，操作符出现在错误位置")
+				panic("表达式错误，操作符出现在错误位置")
 			}
-			if ep.stack.IsEmpty() || ep.stack.Top().sblType == LPAREN || //考虑到左括号这种特殊的操作符
+			if ep.stack.IsEmpty() || ep.stack.Top().sblType == LPAREN || //考虑到左括号这种特殊的操作符可能会在栈中的情况
 				!isPrior(ep.stack.Top(), curSmb) {
 				ep.stack.Push(curSmb)
 			} else {
@@ -155,128 +140,89 @@ func (ep *ExprParser) Execute() {
 				ep.stack.Push(curSmb)
 			}
 		}
-		lastSymbol = curSmb
-	}
-	if !ep.stack.IsEmpty() {
+		lastSymbol = curSmb //更新上一个处理过的符号，以便遍历下一个符号时使用
+	} //循环遍历表达式字符串结束
+	for !ep.stack.IsEmpty() { //考虑到表达式最后的符号可能是标识符而不是操作符，将剩余操作符弹出处理
 		symbOpt := ep.stack.Pop()
+		if symbOpt.sblType == LPAREN {
+			panic("表达式错误，左右括号不匹配")
+		}
 		ep.postFixSymbols = append(ep.postFixSymbols, symbOpt)
 	}
 }
 
-func InfixExpToPostfixExp(infixExp string) (postFixExp string) {
-	postFixExp = ""
-	postFixSymbols := []Symbol{}
-	var stack Stack[Symbol] = &SliceStackAny[Symbol]{}
-	var readIdent Symbol
-	var readOpt Symbol
-	for i := 0; i < len(infixExp); i++ {
-		ch := infixExp[i]
-		if isSpace(ch) {
-			continue
-		}
-		curSmb := charToSymble(ch)
-		//TODO 判断最后一个操作符的合法
-		switch curSmb.sblType {
-		case IDENT:
-			readIdent = curSmb
+type Number interface {
+	~uint | ~uint32 | ~uint64 | ~int | ~int32 | ~int64 | ~float32 | ~float64
+}
 
-			if i == len(infixExp)-1 {
-				postFixSymbols = append(postFixSymbols, readIdent)
-				readOpt = stack.Pop() //弹出上一个操作符
-				if stack.IsEmpty() {
-					postFixSymbols = append(postFixSymbols, readOpt)
-
-				} else {
-					priorOPt := stack.Pop()
-					if isPrior(priorOPt, readOpt) {
-						postFixSymbols = append(postFixSymbols, priorOPt)
-						postFixSymbols = append(postFixSymbols, readOpt)
-					} else {
-						postFixSymbols = append(postFixSymbols, readOpt)
-						postFixSymbols = append(postFixSymbols, priorOPt)
-					}
-				}
-			}
-		case LPAREN:
-			stack.Push(curSmb) //
-		case RPAREN:
-			postFixSymbols = append(postFixSymbols, readIdent)
-			readIdent = Symbol{}
-			for !stack.IsEmpty() && stack.Top().sblType != LPAREN {
-				priorOpt := stack.Pop() //弹出前面的操作符，因为它的右操作数已经找到
-				postFixSymbols = append(postFixSymbols, priorOpt)
-			}
-			if stack.IsEmpty() {
-				panic("错误，左右括号不匹配")
-			}
-			stack.Push(curSmb)
-		case OPERATOR:
-			readOpt = curSmb
-			//对于读取到的操作符，其左操作数要么是readIdent，要么是栈顶操作符与readIdent组成的表达式。
-			//如果堆栈为空，且readIdent的类型也不是标识符（IDENT），那当前的中缀操作符就没有左操作数了。
-			if readIdent.sblType == INVALID {
-				if stack.IsEmpty() {
-					panic("错误，操作符缺失左操作数")
-				} else if stack.Top().sblType != RPAREN {
-					panic("错误，出现了相邻的两个中缀操作符")
-				} else {
-					stack.Pop()
-					stack.Pop()
-				}
-			}
-
-			//当前栈中没有上一个操作符，表明已读出的操作数是已读出的操作符的左操作数
-			if stack.IsEmpty() && readIdent.sblType != INVALID {
-				left := readIdent
-				postFixSymbols = append(postFixSymbols, left)
-				stack.Push(readOpt) //已读取的操作数作为左操作数压栈
-				readIdent = Symbol{}
-				readIdent = Symbol{}
-				continue //当前标识符已经处理完毕
-			}
-			priorOpt := stack.Top()
-			//上一个操作符的优先级低于当前读取的操作符，意味着当前读取的操作数是下一个操作符的左操作数，
-			//当前操作符及其连接的表达式是上一个操作符的右操作数。
-			if priorOpt.sblType == LPAREN || !isPrior(priorOpt, readOpt) { //当前操作符优先级低于前一个操作
-				left := readIdent
-				postFixSymbols = append(postFixSymbols, left)
-				stack.Push(readOpt)  //把当前的操作符作为压栈，等待右操作数的形成
-				readIdent = Symbol{} //设置为零值
-				readOpt = Symbol{}   //设置为零值
-			} else { // 上一个操作符的优先级高于或等于所读出来的操作符，则表明前一个操作符的右操作符是rendIdent
-				right := readIdent
-				postFixSymbols = append(postFixSymbols, right)
-				postFixSymbols = append(postFixSymbols, priorOpt)
-				stack.Pop() //弹出上一个操作符
-				for !stack.IsEmpty() {
-					priorOpt := stack.Top()
-					if isPrior(priorOpt, readOpt) {
-						postFixSymbols = append(postFixSymbols, priorOpt)
-						stack.Pop()
-					} else {
-						break
-					}
-				}
-				stack.Push(readOpt)
-				readIdent = Symbol{}
-				readOpt = Symbol{}
-			}
-		}
+func Compute[N Number](operator string, left, right N) N {
+	switch operator {
+	case "+":
+		return left + right
+	case "-":
+		return left - right
+	case "*":
+		return left * right
+	case "/":
+		return left / right
+	default:
+		panic("无法识别的操作符")
 	}
 
-	postFixExp = LeftFold(Map(postFixSymbols,
-		func(smbl Symbol) string { return smbl.literal }),
-		func(s1, s2 string) string { return s1 + s2 })
-	return postFixExp
+}
+func Evalueate[N Number](values map[string]N, postFixSymbols []Symbol) N {
+	valueStack := SliceStackAny[N]{}
+	for _, symbl := range postFixSymbols {
+		switch symbl.sblType {
+		case IDENT:
+			symbValue := values[symbl.literal]
+			valueStack.Push(symbValue)
+		case OPERATOR:
+			rightValue := valueStack.Pop()
+			leftValue := valueStack.Pop()
+			tempResult := Compute(symbl.literal, leftValue, rightValue)
+			valueStack.Push(tempResult)
+		}
+	}
+	return valueStack.Pop()
 }
 
 func TestInfixExpToPostfixExp(t *testing.T) {
-	exp := "a + ( b-c)*d/(e+g)*h-d"
+	exp := ("a + (b - c) / (d * e)")
+	//exp := "a +(b-c)*d/(e+g)*h-d*d"
 	fmt.Println(exp)
-	result := InfixExpToPostfixExp(exp)
+	var result string
+	result = InfixExpToPostfixExp(exp)
 	fmt.Println(result)
 	ep := NewExprParser(exp)
 	ep.Execute()
 	result = ep.GetPostFixExpr()
 	fmt.Println(result)
+	vm := map[string]int{
+		"a": 1,
+		"b": 10,
+		"c": 5,
+		"d": 4,
+		"e": 2,
+		"g": 3,
+		"h": 6,
+	}
+	resultValue := Evalueate(vm, ep.postFixSymbols)
+	println(resultValue)
+	values := make(map[string]float64)
+	values["a"] = 10
+	values["b"] = 5
+	values["c"] = 2
+	values["d"] = 4
+	values["e"] = 3
+	fmt.Println(Evalueate(values, ep.postFixSymbols))
+
+}
+
+func TestFeature(t *testing.T) {
+
+	err1 := errors.New("error 1")
+	err2 := errors.New("error 2")
+	combinedErr := errors.Join(err1, err2)
+	fmt.Println(combinedErr)
 }

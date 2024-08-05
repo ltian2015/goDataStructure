@@ -8,85 +8,9 @@ package basic
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 )
-
-// !!! IsNil泛型函数判断给定的任何类型（any类型）值是否为nil。
-// !!! golang中，所有类型都是语言所提供的基础类型做源类型或组合所衍生的，
-// !!! 这些基本类型决定了被衍生类型的内存布局,也就决定其“零值”应该是nil还是0。
-// !!! 因而，只要判断给定类型的值是否属于以下种类（kind），
-// !!! 就可以通过该值调用IsZero（是否零值）判定其值是nil还是非nil。
-// !!! 所有接口类型，包括interface{}，也就是any类型在内的接口零值,——nil最为特殊，用该值调用IsZero会抛出异常，但是该nil值的
-// !!! kind是Invalid，因此可以用于判断是否为nil。（需要确定是否还有其他情况出现Invalid Kind的特殊值,但目前尚未发现）
-func IsNil[T any](t T) bool {
-	value := reflect.ValueOf(t)
-	kind := value.Kind()
-	switch kind {
-	case reflect.Invalid:
-		return true
-	case reflect.Interface, reflect.Pointer, reflect.Chan,
-		reflect.Func, reflect.UnsafePointer, reflect.Map, reflect.Slice:
-		if value.IsZero() {
-			return true
-		} else {
-			return false
-		}
-	default:
-		return false
-	}
-}
-
-func TestIsNil(t *testing.T) {
-	var s string
-	if s == "" {
-		println("string类型的零值是\"\"")
-	}
-	var p *int
-
-	if p == nil {
-		println("f 为（==） nil")
-	}
-	if IsNil(p) {
-		println("f 是（isNil） nil")
-	}
-	var f func(a string) string
-	if f == nil {
-		println("f 为（==） nil")
-	}
-	if IsNil(f) {
-		println("f 是（isNil） nil")
-	}
-	var i any
-	if i == nil {
-		println("i 为（==） nil")
-	}
-	if IsNil(i) {
-		println("i 是（isNil） nil")
-	}
-	var iv int
-	if IsNil(iv) {
-		println("it 是（isNil） nil")
-	} else {
-		fmt.Printf("%d  不是（isNil） nil\n", iv)
-	}
-	var strct = struct {
-		id   int
-		name string
-	}{}
-	if IsNil(strct) {
-		println("strct 是（isNil） nil")
-	} else {
-		fmt.Printf("%v  不是（isNil） nil\n", strct)
-	}
-	empstrct := struct{}{}
-	if IsNil(strct) {
-		println("empstrct 是（isNil） nil")
-	} else {
-		fmt.Printf("%v  不是（isNil） nil\n", empstrct)
-	}
-}
 
 type StackPanic string
 
@@ -265,11 +189,6 @@ func TestSliceStackAny(t *testing.T) {
 	println(nameStack.Pop())
 }
 
-type Node[T any] struct {
-	value T
-	next  *Node[T]
-}
-
 type NodeStack[T any] struct {
 	first *Node[T]
 }
@@ -375,4 +294,17 @@ func TestStackPerformance(t *testing.T) {
 	}
 	elapsed = time.Since(start)
 	fmt.Println("\nTime for 10 million Pop() operations on sliceStack: ", elapsed)
+}
+
+type Data struct {
+	id   int
+	name string
+}
+
+func TestSlice(t *testing.T) {
+	s := []Data{}
+	d1 := Data{1, "lan"}
+	s = append(s, d1)
+	d1.id = 2
+	fmt.Printf("d1 is %v s is %v", d1, s)
 }

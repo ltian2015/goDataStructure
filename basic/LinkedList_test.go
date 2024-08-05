@@ -4,13 +4,10 @@ import "testing"
 
 // ///////////////////////////////////以下是单向列表的操作
 // 包外不可见
-type node[T any] struct {
-	value T
-	next  *node[T]
-}
+
 type SingleLinkedList[T any] struct {
-	head *node[T]
-	tail *node[T] //方便Append操作，即，在尾部追加节点
+	head *Node[T]
+	tail *Node[T] //方便Append操作，即，在尾部追加节点
 	size int
 }
 
@@ -20,7 +17,7 @@ func (sll *SingleLinkedList[T]) Size() int {
 func (sll *SingleLinkedList[T]) IsEmpty() bool {
 	return sll.size == 0
 }
-func (sll *SingleLinkedList[T]) addNodeToEmpyList(nd *node[T]) {
+func (sll *SingleLinkedList[T]) addNodeToEmpyList(nd *Node[T]) {
 	if sll.size > 0 {
 		panic("列表不空，操作错误")
 	}
@@ -29,7 +26,7 @@ func (sll *SingleLinkedList[T]) addNodeToEmpyList(nd *node[T]) {
 	sll.size++
 }
 func (sll *SingleLinkedList[T]) Append(value T) {
-	nd := &node[T]{
+	nd := &Node[T]{
 		value: value,
 		next:  nil,
 	}
@@ -43,7 +40,7 @@ func (sll *SingleLinkedList[T]) Append(value T) {
 
 }
 func (sll *SingleLinkedList[T]) Insert(i int, value T) {
-	newNd := &node[T]{value: value, next: nil}
+	newNd := &Node[T]{value: value, next: nil}
 	if sll.size == 0 {
 		sll.addNodeToEmpyList(newNd)
 		return
@@ -77,7 +74,7 @@ func (sll *SingleLinkedList[T]) Delete(i int) T {
 	if sll.IsEmpty() {
 		panic("试图从空列表中删除元素")
 	}
-	var ndTobeDelete *node[T]
+	var ndTobeDelete *Node[T]
 	if i == 0 {
 		ndTobeDelete = sll.head
 		sll.head = ndTobeDelete.next
@@ -90,7 +87,7 @@ func (sll *SingleLinkedList[T]) Delete(i int) T {
 	sll.size--
 	return ndTobeDelete.value
 }
-func (sll *SingleLinkedList[T]) getNode(i int) *node[T] {
+func (sll *SingleLinkedList[T]) getNode(i int) *Node[T] {
 	if i < 0 || i > sll.size || sll.IsEmpty() {
 		panic("无法获取非法序号的节点")
 	}
