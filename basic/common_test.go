@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+const SIZE = 10_000_000
+
 type Node[T any] struct {
 	value T
 	next  *Node[T]

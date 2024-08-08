@@ -263,33 +263,31 @@ func TestNodeStack(t *testing.T) {
 	anyStack.Push(nullStack)
 }
 
-const size = 10_000_000
-
 func TestStackPerformance(t *testing.T) {
 	nodeStack := NodeStack[int]{}
 	sliceStack := SliceStackAny[int]{}
 	// Benchmark nodeStack
 	start := time.Now()
-	for i := 0; i < size; i++ {
+	for i := 0; i < SIZE; i++ {
 		nodeStack.Push(i)
 	}
 	elapsed := time.Since(start)
 	fmt.Println("\nTime for 10 million Push() operations on nodeStack: ", elapsed)
 	start = time.Now()
-	for i := 0; i < size; i++ {
+	for i := 0; i < SIZE; i++ {
 		nodeStack.Pop()
 	}
 	elapsed = time.Since(start)
 	fmt.Println("\nTime for 10 million Pop() operations on nodeStack: ", elapsed)
 	// Benchmark sliceStack
 	start = time.Now()
-	for i := 0; i < size; i++ {
+	for i := 0; i < SIZE; i++ {
 		sliceStack.Push(i)
 	}
 	elapsed = time.Since(start)
 	fmt.Println("\nTime for 10 million Push() operations on sliceStack: ", elapsed)
 	start = time.Now()
-	for i := 0; i < size; i++ {
+	for i := 0; i < SIZE; i++ {
 		sliceStack.Pop()
 	}
 	elapsed = time.Since(start)
