@@ -13,6 +13,12 @@ type Node[T any] struct {
 	next  *Node[T]
 }
 
+type DNode[T any] struct {
+	value T
+	pre   *DNode[T]
+	next  *DNode[T]
+}
+
 // !!! IsNil泛型函数判断给定的任何类型（any类型）值是否为nil。
 // !!! golang中，所有类型都是语言所提供的基础类型做源类型或组合所衍生的，
 // !!! 这些基本类型决定了被衍生类型的内存布局,也就决定其“零值”应该是nil还是0。
